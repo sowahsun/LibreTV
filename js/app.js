@@ -21,7 +21,8 @@ document.addEventListener('DOMContentLoaded', function () {
     selectedAPIs = [...allBuiltInApiKeys, ...allCustomApiIds];
     localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs));
 
-    // 2. 强制设置所有功能开关的初始状态
+    // 2. 强制设置所有功能开关的初始状态到 localStorage
+    // 确保这些设置在页面加载时总是被应用
     localStorage.setItem('yellowFilterEnabled', 'true'); // 强制开启黄色内容过滤 (可调节)
     localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, 'true'); // 强制开启广告过滤 (可调节)
     localStorage.setItem('doubanRecommendEnabled', 'true'); // 强制开启豆瓣热门推荐 (可调节)
@@ -46,11 +47,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // 渲染搜索历史
     renderSearchHistory();
 
-    // === START OF MODIFICATION (Update Toggle States) ===
+    // === START OF MODIFICATION (Update Toggle States based on forced localStorage values) ===
     // 设置黄色内容过滤器开关初始状态
     const yellowFilterToggle = document.getElementById('yellowFilterToggle');
     if (yellowFilterToggle) {
-        yellowFilterToggle.checked = true; // 强制为 true (开启)
+        // 读取 localStorage 的最新状态，而不是直接设置为 true，以防后续有其他逻辑修改
+        yellowFilterToggle.checked = localStorage.getItem('yellowFilterEnabled') === 'true'; // 强制为 true (开启)
         yellowFilterToggle.disabled = false; // 强制为 false (可调节)
         const filterDescription = yellowFilterToggle.closest('div').parentNode.querySelector('p.filter-description');
         if (filterDescription) {
@@ -61,27 +63,27 @@ document.addEventListener('DOMContentLoaded', function () {
     // 设置广告过滤开关初始状态
     const adFilterToggle = document.getElementById('adFilterToggle');
     if (adFilterToggle) {
-        adFilterToggle.checked = true; // 强制为 true (开启)
+        adFilterToggle.checked = localStorage.getItem(PLAYER_CONFIG.adFilteringStorage) === 'true'; // 强制为 true (开启)
         adFilterToggle.disabled = false; // 可调节
     }
 
     // 设置豆瓣热门推荐开关初始状态 (假设ID为 doubanRecommendToggle)
     const doubanRecommendToggle = document.getElementById('doubanRecommendToggle');
     if (doubanRecommendToggle) {
-        doubanRecommendToggle.checked = true; // 强制为 true (开启)
+        doubanRecommendToggle.checked = localStorage.getItem('doubanRecommendEnabled') === 'true'; // 强制为 true (开启)
         doubanRecommendToggle.disabled = false; // 可调节
     }
 
     // 设置智能快搜开关初始状态 (假设其ID为 smartSearchToggle)
     const smartSearchToggle = document.getElementById('smartSearchToggle');
     if (smartSearchToggle) {
-        smartSearchToggle.checked = true; // 强制为true
+        smartSearchToggle.checked = localStorage.getItem('smartSearchEnabled') === 'true'; // 强制为true
     }
 
     // 设置视频分级开关初始状态 (假设其ID为 videoRatingToggle)
     const videoRatingToggle = document.getElementById('videoRatingToggle');
     if (videoRatingToggle) {
-        videoRatingToggle.checked = true; // 强制为true
+        videoRatingToggle.checked = localStorage.getItem('videoRatingEnabled') === 'true'; // 强制为true
     }
     // === END OF MODIFICATION ===
 
@@ -90,6 +92,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始检查成人API选中状态 (现在此函数不会影响黄滤的禁用状态了，只更新提示)
     setTimeout(checkAdultAPIsSelected, 100);
+
+    // === NEW ADDITION: Ensure Douban visibility is updated on load ===
+    // 在所有初始化和事件监听器设置完成后，立即更新豆瓣区域的显示状态
+    if (typeof updateDoubanVisibility === 'function') {
+        updateDoubanVisibility();
+    }
+    // === END NEW ADDITION ===
 });
 
 // 初始化API复选框
