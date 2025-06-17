@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // === START OF MODIFICATION ===
 
-    // 1. 在初始化时，强制将所有内置API和所有自定义API添加到 selectedAPIs 中
+    // 1. 在初始化时，强制将所有内置API和所有自定义API添加到 selectedAPIs 中 
     // 这样确保首次加载或重置时所有API都被“默认”选中，且可被用户手动取消选中
     const allBuiltInApiKeys = Object.keys(API_SITES);
     const allCustomApiIds = customAPIs.map((_, index) => 'custom_' + index);
@@ -36,24 +36,24 @@ document.addEventListener('DOMContentLoaded', function () {
     selectedAPIs = Array.from(initialSelectedAPIsSet);
     localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs));
 
-    // 2. 强制启用黄色内容过滤和广告过滤，以及假设的豆瓣过滤
+    // 2. 强制启用黄色内容过滤和广告过滤，以及假设的豆瓣过滤 
     localStorage.setItem('yellowFilterEnabled', 'true'); // 强制开启黄色内容过滤
     localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, 'true'); // 强制开启广告过滤
     // 假设豆瓣过滤也有一个对应的localStorage键
     localStorage.setItem('doubanFilterEnabled', 'true'); // 强制开启豆瓣过滤（假设）
 
-    // 3. 标记已初始化默认值，防止旧的默认逻辑覆盖我们的设置
+    // 3. 标记已初始化默认值，防止旧的默认逻辑覆盖我们的设置 
     localStorage.setItem('hasInitializedDefaults', 'true');
 
-    // === END OF MODIFICATION === 
+    // === END OF MODIFICATION ===
 
-    // 初始化API复选框 (这会根据新的 selectedAPIs 状态来渲染)
+    // 初始化API复选框 (这会根据新的 selectedAPIs 状态来渲染) 
     initAPICheckboxes();
 
-    // 初始化自定义API列表 (这会根据新的 selectedAPIs 状态来渲染)
+    // 初始化自定义API列表 (这会根据新的 selectedAPIs 状态来渲染) 
     renderCustomAPIsList();
 
-    // 初始化显示选中的API数量
+    // 初始化显示选中的API数量 
     updateSelectedApiCount();
     renderSearchHistory(); // 渲染搜索历史 
 
@@ -69,13 +69,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const adFilterToggle = document.getElementById('adFilterToggle');
     if (adFilterToggle) { // 
         // 默认勾选，且可调节
-        adFilterToggle.checked = localStorage.getItem(PLAYER_CONFIG.adFilteringStorage) === 'true'; 
+        adFilterToggle.checked = localStorage.getItem(PLAYER_CONFIG.adFilteringStorage) === 'true'; [cite: 1]
     }
 
     // 设置豆瓣过滤开关初始状态 (假设存在此ID和功能)
     const doubanFilterToggle = document.getElementById('doubanFilterToggle');
     if (doubanFilterToggle) {
-        doubanFilterToggle.checked = localStorage.getItem('doubanFilterEnabled') === 'true';
+        // *** START OF DOUBAN MODIFICATION ***
+        doubanFilterToggle.checked = localStorage.getItem('doubanFilterEnabled') === 'true'; // 确保豆瓣过滤默认勾选 
+        // *** END OF DOUBAN MODIFICATION ***
     }
 
 
@@ -97,7 +99,7 @@ function initAPICheckboxes() {
     normalTitle.className = 'api-group-title';
     normalTitle.textContent = '普通资源';
     normaldiv.appendChild(normalTitle);
-    // 创建普通API源的复选框 
+    // 创建普通API源的复选框
     Object.keys(API_SITES).forEach(apiKey => {
         const api = API_SITES[apiKey];
         if (api.adult) return; // 跳过成人内容API，稍后添加
@@ -113,7 +115,8 @@ function initAPICheckboxes() {
                            class="form-checkbox h-3 w-3 text-blue-600 bg-[#222] border border-[#333]"
                            ${checked ? 'checked' : ''}
               
-              data-api="${apiKey}"> <label for="api_${apiKey}" class="ml-1 text-xs text-gray-400 truncate">${api.name}</label>
+              data-api="${apiKey}"> 
+            <label for="api_${apiKey}" class="ml-1 text-xs text-gray-400 truncate">${api.name}</label>
         `;
         normaldiv.appendChild(checkbox);
 
@@ -151,7 +154,7 @@ function addAdultAPI() {
         adultdiv.className = 'grid grid-cols-2 gap-2';
         const adultTitle = document.createElement('div');
         adultTitle.className = 'api-group-title adult';
-        adultTitle.innerHTML = `黄色资源采集站 <span class="adult-warning">
+        adultTitle.innerHTML = `黄色资源采集站 <span class="adult-warning"> 
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
@@ -171,7 +174,8 @@ function addAdultAPI() {
             checkbox.innerHTML = `
                 <input type="checkbox" id="api_${apiKey}"
                                class="form-checkbox h-3 
-w-3 text-blue-600 bg-[#222] border border-[#333] api-adult" ${checked ? 'checked' : ''}
+w-3 text-blue-600 bg-[#222] border border-[#333] api-adult" 
+                               ${checked ? 'checked' : ''}
                                data-api="${apiKey}">
                 <label for="api_${apiKey}" class="ml-1 text-xs text-pink-400 truncate">${api.name}</label>
         
@@ -206,20 +210,20 @@ function checkAdultAPIsSelected() {
     const yellowFilterContainer = yellowFilterToggle.closest('div').parentNode;
     const filterDescription = yellowFilterContainer.querySelector('p.filter-description'); // 
 
-    // 如果选择了成人API，则禁用黄色内容过滤器并强制其为关闭状态
+    // 如果选择了成人API，则禁用黄色内容过滤器并强制其为关闭状态 
     if (hasAdultSelected) {
         yellowFilterToggle.checked = false; // 
         yellowFilterToggle.disabled = true; // 
         localStorage.setItem('yellowFilterEnabled', 'false');
 
-        // 添加禁用样式 
+        // 添加禁用样式
         yellowFilterContainer.classList.add('filter-disabled');
         // 修改描述文字 
         if (filterDescription) { // 
             filterDescription.innerHTML = '<strong class="text-pink-300">选中黄色资源站时无法启用此过滤</strong>'; // 
         }
 
-        // 移除提示信息（如果存在） 
+        // 移除提示信息（如果存在）
         const existingTooltip = yellowFilterContainer.querySelector('.filter-tooltip'); // 
         if (existingTooltip) { // 
             existingTooltip.remove(); // 
@@ -285,26 +289,30 @@ function renderCustomAPIsList() {
             <div class="flex items-center flex-1 min-w-0">
                 <input type="checkbox" id="custom_api_${index}"
           
-                             class="form-checkbox h-3 w-3 text-blue-600 mr-1 ${api.isAdult ? 'api-adult' : ''}" ${checked ? 'checked' : ''}
+                             class="form-checkbox h-3 w-3 text-blue-600 mr-1 ${api.isAdult ? 'api-adult' : ''}" 
+                               ${checked ? 'checked' : ''}
                                data-custom-index="${index}">
     
-                <div class="flex-1 min-w-0"> <div class="text-xs font-medium ${textColorClass} truncate">
+                <div class="flex-1 min-w-0"> 
+                    <div class="text-xs font-medium ${textColorClass} truncate">
                         ${adultTag}${api.name}
                     </div>
                   
-                    <div class="text-xs text-gray-500 truncate">${api.url}</div> ${detailLine}
+                    <div class="text-xs text-gray-500 truncate">${api.url}</div> 
+                    ${detailLine}
                 </div>
             </div>
             <div class="flex items-center">
                 <button class="text-blue-500 hover:text-blue-700 text-xs px-1" onclick="editCustomApi(${index})">✎</button>
             
                 <button class="text-red-500 hover:text-red-700 text-xs px-1" onclick="removeCustomApi(${index})">✕</button>
-            </div> `;
+            </div> 
+        `;
         container.appendChild(apiItem); // 
         apiItem.querySelector('input').addEventListener('change', function () {
             updateSelectedAPIs();
             checkAdultAPIsSelected();
-        }); // 
+        }); [cite: 1]
     });
 }
 
@@ -348,7 +356,7 @@ function updateCustomApi(index) {
         return; // 
     }
     if (url.endsWith('/')) url = url.slice(0, -1); // 
-    // 保存 detail 字段 
+    // 保存 detail 字段
     customAPIs[index] = { name, url, detail, isAdult };
     localStorage.setItem('customAPIs', JSON.stringify(customAPIs));
     renderCustomAPIsList();
@@ -370,10 +378,10 @@ function cancelEditCustomApi() {
     document.getElementById('customApiDetail').value = '';
     const isAdultInput = document.getElementById('customApiIsAdult');
     if (isAdultInput) isAdultInput.checked = false; // 
-    // 隐藏表单 
+    // 隐藏表单
     document.getElementById('addCustomApiForm').classList.add('hidden');
 
-    // 恢复添加按钮 
+    // 恢复添加按钮
     restoreAddCustomApiButtons(); // 
 }
 
@@ -492,10 +500,10 @@ function addCustomApi() {
     if (url.endsWith('/')) { // 
         url = url.slice(0, -1); // 
     }
-    // 保存 detail 字段 
+    // 保存 detail 字段
     customAPIs.push({ name, url, detail, isAdult });
     localStorage.setItem('customAPIs', JSON.stringify(customAPIs));
-    // 自动选中新添加的API，并确保其状态可调节
+    // 自动选中新添加的API，并确保其状态可调节 
     selectedAPIs.push('custom_' + (customAPIs.length - 1)); // 
     localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs)); // 
 
@@ -519,7 +527,7 @@ function removeCustomApi(index) {
     // 从列表中移除API
     customAPIs.splice(index, 1);
     localStorage.setItem('customAPIs', JSON.stringify(customAPIs)); // 
-    // 从选中列表中移除此API 
+    // 从选中列表中移除此API
     const customApiId = 'custom_' + index;
     selectedAPIs = selectedAPIs.filter(id => id !== customApiId); // 
     // 更新大于此索引的自定义API索引 
@@ -539,7 +547,7 @@ function removeCustomApi(index) {
     // 重新渲染自定义API列表
     renderCustomAPIsList();
 
-    // 更新选中的API数量 
+    // 更新选中的API数量
     updateSelectedApiCount();
     checkAdultAPIsSelected(); // 重新检查成人API选中状态 
 
@@ -622,7 +630,7 @@ function setupEventListeners() {
        
                 addAdultAPI(); // 添加成人API列表 
             }
-            // 重新检查成人API选中状态以更新提示 
+            // 重新检查成人API选中状态以更新提示
             checkAdultAPIsSelected();
         });
     }
@@ -658,13 +666,13 @@ function resetSearchArea() {
     document.getElementById('searchArea').classList.remove('mb-8');
     document.getElementById('resultsArea').classList.add('hidden');
 
-    // 确保页脚正确显示，移除相对定位 
+    // 确保页脚正确显示，移除相对定位
     const footer = document.querySelector('.footer'); // 
     if (footer) { // 
         footer.style.position = ''; // 
     }
 
-    // 如果有豆瓣功能，检查是否需要显示豆瓣推荐区域 
+    // 如果有豆瓣功能，检查是否需要显示豆瓣推荐区域
     // 这里的逻辑需要根据“豆瓣默认勾选”的需求调整
     const doubanArea = document.getElementById('doubanArea');
     const doubanFilterEnabled = localStorage.getItem('doubanFilterEnabled') === 'true';
@@ -748,7 +756,7 @@ async function search() {
             searchResultsCount.textContent = allResults.length; // 
         }
 
-        // 显示结果区域，调整搜索区域
+        // 显示结果区域，调整搜索区域 
         document.getElementById('searchArea').classList.remove('flex-1');
         document.getElementById('searchArea').classList.add('mb-8');
         document.getElementById('resultsArea').classList.remove('hidden');
@@ -767,8 +775,10 @@ async function search() {
                       
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg> <h3 class="mt-2 text-lg 
-font-medium text-gray-400">没有找到匹配的结果</h3> <p class="mt-1 text-sm text-gray-500">请尝试其他关键词或更换数据源</p>
+                    </svg> 
+                    <h3 class="mt-2 text-lg 
+font-medium text-gray-400">没有找到匹配的结果</h3> 
+                    <p class="mt-1 text-sm text-gray-500">请尝试其他关键词或更换数据源</p>
                 </div>
             `;
             hideLoading(); // 
@@ -777,7 +787,7 @@ font-medium text-gray-400">没有找到匹配的结果</h3> <p class="mt-1 text-
 
         // 有搜索结果时，才更新URL 
         try { // 
-            // 使用URI编码确保特殊字符能够正确显示
+            // 使用URI编码确保特殊字符能够正确显示 
             const encodedQuery = encodeURIComponent(query); // 
             // 使用HTML5 History API更新URL，不刷新页面 
             window.history.pushState(
@@ -814,7 +824,7 @@ font-medium text-gray-400">没有找到匹配的结果</h3> <p class="mt-1 text-
                 `<span class="bg-[#222] text-xs px-1.5 py-0.5 rounded-full">${item.source_name}</span>` : '';
             const sourceCode = item.source_code || '';
 
-            // 添加API URL属性，用于详情获取 
+            // 添加API URL属性，用于详情获取
             const apiUrlAttr = item.api_url ?
     
                 `data-api-url="${item.api_url.replace(/"/g, '&quot;')}"` : ''; // 
@@ -825,35 +835,42 @@ font-medium text-gray-400">没有找到匹配的结果</h3> <p class="mt-1 text-
             return `
                 <div class="card-hover bg-[#111] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] h-full shadow-sm hover:shadow-md"
                 
-                    onclick="showDetails('${safeId}','${safeName}','${sourceCode}')" ${apiUrlAttr}> <div class="flex h-full">
-                        ${hasCover ? // [cite: 334]
+                    onclick="showDetails('${safeId}','${safeName}','${sourceCode}')" ${apiUrlAttr}> 
+                    <div class="flex h-full">
+                        ${hasCover ? // [cite: 1]
 `
                         <div class="relative flex-shrink-0 search-card-img-container">
                             <img src="${item.vod_pic}" alt="${safeName}"
                                  class="h-full w-full object-cover transition-transform hover:scale-110"
       
-                                 onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450?text=无封面'; this.classList.add('object-contain');" loading="lazy"> <div class="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent"></div>
+                                 onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450?text=无封面'; this.classList.add('object-contain');" 
+                                 loading="lazy"> 
+                            <div class="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent"></div>
                         </div>` : ''}
 
                         <div class="p-2 flex flex-col flex-grow">
              
-                            <div class="flex-grow"> <h3 class="font-semibold mb-2 break-words line-clamp-2 ${hasCover ? '' : 'text-center'}" title="${safeName}">${safeName}</h3>
+                            <div class="flex-grow"> 
+                                <h3 class="font-semibold mb-2 break-words line-clamp-2 ${hasCover ? '' : 'text-center'}" title="${safeName}">${safeName}</h3>
 
                                 <div class="flex flex-wrap ${hasCover ? '' : 'justify-center'} gap-1 mb-2">
  
-                                    ${(item.type_name || '').toString().replace(/</g, '&lt;') ? // [cite: 338]
+                                    ${(item.type_name || '').toString().replace(/</g, '&lt;') ? // [cite: 1]
 `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-blue-500 text-blue-300">
                                             ${(item.type_name || '').toString().replace(/</g, '&lt;')}
-                                        </span>` : ''} ${(item.vod_year || '') ? // [cite: 340]
+                                        </span>` : ''} ${(item.vod_year || '') ? // [cite: 1]
 `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-purple-500 text-purple-300">
                                             ${item.vod_year}
-                                        </span>` : ''} </div> <p class="text-gray-400 line-clamp-2 overflow-hidden ${hasCover ? '' : 'text-center'} mb-2">
+                                        </span>` : ''} </div> 
+                                <p class="text-gray-400 line-clamp-2 overflow-hidden ${hasCover ? '' : 'text-center'} mb-2">
                                   
-                                    ${(item.vod_remarks || '暂无介绍').toString().replace(/</g, '&lt;')} </p>
+                                    ${(item.vod_remarks || '暂无介绍').toString().replace(/</g, '&lt;')} 
+                                </p>
                             </div>
 
                             <div class="flex justify-between items-center mt-1 pt-1 border-t 
-border-gray-800"> ${sourceInfo ? // [cite: 345]
+border-gray-800"> 
+                                ${sourceInfo ? // [cite: 1]
 `<div>${sourceInfo}</div>` : '<div></div>'} </div>
                         </div>
                     </div>
@@ -917,7 +934,7 @@ function hookInput() {
     input.value = '';
 }
 document.addEventListener('DOMContentLoaded', hookInput); // 
-// 显示详情 - 修改为支持自定义API 
+// 显示详情 - 修改为支持自定义API
 async function showDetails(id, vod_name, sourceCode) {
     // 密码保护校验
     if (window.isPasswordProtected && window.isPasswordVerified) {
@@ -933,7 +950,7 @@ async function showDetails(id, vod_name, sourceCode) {
 
     showLoading();
     try {
-        // 构建API参数 
+        // 构建API参数
         let apiParams = ''; // 
 
         // 处理自定义API源 
