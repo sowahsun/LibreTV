@@ -13,28 +13,10 @@ let episodesReversed = false;
 
 // 页面初始化
 document.addEventListener('DOMContentLoaded', function () {
-    // === START OF MODIFICATION ===
-
-    // 1. 强制选中所有内置API和所有自定义API
-    // 假设 API_SITES 是一个包含所有内置API定义的全局对象
-    const allBuiltInApiKeys = Object.keys(API_SITES);
-    const allCustomApiIds = customAPIs.map((_, index) => 'custom_' + index); // 假设 custom_0, custom_1 等
-    selectedAPIs = [...allBuiltInApiKeys, ...allCustomApiIds];
-    localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs));
-
-    // 2. 强制禁用黄色内容过滤和广告过滤，以确保成人API显示并可用
-    localStorage.setItem('yellowFilterEnabled', 'false'); // 强制关闭黄色内容过滤
-    localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, 'false'); // 强制关闭广告过滤（如果需要）
-
-    // 3. 标记已初始化默认值，防止旧的默认逻辑覆盖我们的设置
-    localStorage.setItem('hasInitializedDefaults', 'true');
-
-    // === END OF MODIFICATION ===
-
-    // 初始化API复选框 (这会根据新的 selectedAPIs 状态来渲染，且复选框渲染逻辑已修改为强制选中)
+    // 初始化API复选框
     initAPICheckboxes();
 
-    // 初始化自定义API列表 (这会根据新的 selectedAPIs 状态来渲染，且复选框渲染逻辑已修改为强制选中)
+    // 初始化自定义API列表
     renderCustomAPIsList();
 
     // 初始化显示选中的API数量
@@ -43,23 +25,39 @@ document.addEventListener('DOMContentLoaded', function () {
     // 渲染搜索历史
     renderSearchHistory();
 
+    // 设置默认API选择（如果是第一次加载）
+    if (!localStorage.getItem('hasInitializedDefaults')) {
+        // 默认选中资源
+        selectedAPIs = ["tyyszy", "bfzy", "dyttzy", "ruyi"];
+        localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs));
+
+        // 默认选中过滤开关
+        localStorage.setItem('yellowFilterEnabled', 'true');
+        localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, 'true');
+
+        // 默认启用豆瓣功能
+        localStorage.setItem('doubanEnabled', 'true');
+
+        // 标记已初始化默认值
+        localStorage.setItem('hasInitializedDefaults', 'true');
+    }
+
     // 设置黄色内容过滤器开关初始状态
     const yellowFilterToggle = document.getElementById('yellowFilterToggle');
     if (yellowFilterToggle) {
-        yellowFilterToggle.checked = false; // 强制为false
-        yellowFilterToggle.disabled = false; // 确保可以被后续的 checkAdultAPIsSelected 控制
+        yellowFilterToggle.checked = localStorage.getItem('yellowFilterEnabled') === 'true';
     }
 
     // 设置广告过滤开关初始状态
     const adFilterToggle = document.getElementById('adFilterToggle');
     if (adFilterToggle) {
-        adFilterToggle.checked = false; // 强制为false
+        adFilterToggle.checked = localStorage.getItem(PLAYER_CONFIG.adFilteringStorage) !== 'false'; // 默认为true
     }
 
     // 设置事件监听器
     setupEventListeners();
 
-    // 初始检查成人API选中状态 (这会根据我们强制选中所有API的结果来更新过滤器描述)
+    // 初始检查成人API选中状态
     setTimeout(checkAdultAPIsSelected, 100);
 });
 
@@ -82,18 +80,15 @@ function initAPICheckboxes() {
         const api = API_SITES[apiKey];
         if (api.adult) return; // 跳过成人内容API，稍后添加
 
-        // === START OF MODIFICATION ===
-        // 强制选中所有普通API
-        const checked = true;
-        // === END OF MODIFICATION ===
+        const checked = selectedAPIs.includes(apiKey);
 
         const checkbox = document.createElement('div');
         checkbox.className = 'flex items-center';
         checkbox.innerHTML = `
-            <input type="checkbox" id="api_${apiKey}"
-                           class="form-checkbox h-3 w-3 text-blue-600 bg-[#222] border border-[#333]"
-                           ${checked ? 'checked' : ''}
-                           data-api="${apiKey}">
+            <input type="checkbox" id="api_${apiKey}" 
+                   class="form-checkbox h-3 w-3 text-blue-600 bg-[#222] border border-[#333]" 
+                   ${checked ? 'checked' : ''} 
+                   data-api="${apiKey}">
             <label for="api_${apiKey}" class="ml-1 text-xs text-gray-400 truncate">${api.name}</label>
         `;
         normaldiv.appendChild(checkbox);
@@ -107,7 +102,7 @@ function initAPICheckboxes() {
     container.appendChild(normaldiv);
 
     // 添加成人API列表
-    addAdultAPI(); // 确保成人API也会被添加和选中
+    addAdultAPI();
 
     // 初始检查成人内容状态
     checkAdultAPIsSelected();
@@ -115,15 +110,9 @@ function initAPICheckboxes() {
 
 // 添加成人API列表
 function addAdultAPI() {
-    // 仅在隐藏设置为false时添加成人API组 (现在黄色过滤器强制为false，所以这里会执行)
+    // 仅在隐藏设置为false时添加成人API组
     if (!HIDE_BUILTIN_ADULT_APIS && (localStorage.getItem('yellowFilterEnabled') === 'false')) {
         const container = document.getElementById('apiCheckboxes');
-
-        // 如果 adultdiv 已经存在，先移除它，避免重复添加
-        const existingAdultDiv = document.getElementById('adultdiv');
-        if (existingAdultDiv) {
-            existingAdultDiv.remove();
-        }
 
         // 添加成人API组标题
         const adultdiv = document.createElement('div');
@@ -143,18 +132,15 @@ function addAdultAPI() {
             const api = API_SITES[apiKey];
             if (!api.adult) return; // 仅添加成人内容API
 
-            // === START OF MODIFICATION ===
-            // 强制选中所有成人API
-            const checked = true;
-            // === END OF MODIFICATION ===
+            const checked = selectedAPIs.includes(apiKey);
 
             const checkbox = document.createElement('div');
             checkbox.className = 'flex items-center';
             checkbox.innerHTML = `
-                <input type="checkbox" id="api_${apiKey}"
-                               class="form-checkbox h-3 w-3 text-blue-600 bg-[#222] border border-[#333] api-adult"
-                               ${checked ? 'checked' : ''}
-                               data-api="${apiKey}">
+                <input type="checkbox" id="api_${apiKey}" 
+                       class="form-checkbox h-3 w-3 text-blue-600 bg-[#222] border border-[#333] api-adult" 
+                       ${checked ? 'checked' : ''} 
+                       data-api="${apiKey}">
                 <label for="api_${apiKey}" class="ml-1 text-xs text-pink-400 truncate">${api.name}</label>
             `;
             adultdiv.appendChild(checkbox);
@@ -238,18 +224,12 @@ function renderCustomAPIsList() {
         const adultTag = api.isAdult ? '<span class="text-xs text-pink-400 mr-1">(18+)</span>' : '';
         // 新增 detail 地址显示
         const detailLine = api.detail ? `<div class="text-xs text-gray-400 truncate">detail: ${api.detail}</div>` : '';
-
-        // === START OF MODIFICATION ===
-        // 强制选中所有自定义API
-        const checked = true;
-        // === END OF MODIFICATION ===
-
         apiItem.innerHTML = `
             <div class="flex items-center flex-1 min-w-0">
-                <input type="checkbox" id="custom_api_${index}"
-                               class="form-checkbox h-3 w-3 text-blue-600 mr-1 ${api.isAdult ? 'api-adult' : ''}"
-                               ${checked ? 'checked' : ''}
-                               data-custom-index="${index}">
+                <input type="checkbox" id="custom_api_${index}" 
+                       class="form-checkbox h-3 w-3 text-blue-600 mr-1 ${api.isAdult ? 'api-adult' : ''}" 
+                       ${selectedAPIs.includes('custom_' + index) ? 'checked' : ''} 
+                       data-custom-index="${index}">
                 <div class="flex-1 min-w-0">
                     <div class="text-xs font-medium ${textColorClass} truncate">
                         ${adultTag}${api.name}
@@ -354,13 +334,13 @@ function restoreAddCustomApiButtons() {
 // 更新选中的API列表
 function updateSelectedAPIs() {
     // 获取所有内置API复选框
-    const builtInApiCheckboxes = document.querySelectorAll('#apiCheckboxes input[type="checkbox"]');
+    const builtInApiCheckboxes = document.querySelectorAll('#apiCheckboxes input:checked');
 
     // 获取选中的内置API
     const builtInApis = Array.from(builtInApiCheckboxes).map(input => input.dataset.api);
 
     // 获取选中的自定义API
-    const customApiCheckboxes = document.querySelectorAll('#customApisList input[type="checkbox"]');
+    const customApiCheckboxes = document.querySelectorAll('#customApisList input:checked');
     const customApiIndices = Array.from(customApiCheckboxes).map(input => 'custom_' + input.dataset.customIndex);
 
     // 合并内置和自定义API
@@ -388,16 +368,6 @@ function selectAllAPIs(selectAll = true, excludeAdult = false) {
     checkboxes.forEach(checkbox => {
         if (excludeAdult && checkbox.classList.contains('api-adult')) {
             checkbox.checked = false;
-        } else {
-            checkbox.checked = selectAll;
-        }
-    });
-
-    // 确保自定义API也被全选或取消全选
-    const customCheckboxes = document.querySelectorAll('#customApisList input[type="checkbox"]');
-    customCheckboxes.forEach(checkbox => {
-        if (excludeAdult && checkbox.classList.contains('api-adult')) {
-             checkbox.checked = false;
         } else {
             checkbox.checked = selectAll;
         }
@@ -455,13 +425,9 @@ function addCustomApi() {
     // 保存 detail 字段
     customAPIs.push({ name, url, detail, isAdult });
     localStorage.setItem('customAPIs', JSON.stringify(customAPIs));
-
-    // === START OF MODIFICATION ===
-    // 自动选中新添加的API，而不是只添加到 selectedAPIs 数组中
-    // 由于我们已经强制选中所有，这里确保它也被添加进去
-    selectedAPIs.push('custom_' + (customAPIs.length - 1));
+    const newApiIndex = customAPIs.length - 1;
+    selectedAPIs.push('custom_' + newApiIndex);
     localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs));
-    // === END OF MODIFICATION ===
 
     // 重新渲染自定义API列表
     renderCustomAPIsList();
@@ -519,9 +485,9 @@ function toggleSettings(e) {
     if (!settingsPanel) return;
 
     // 检查是否有管理员密码
-    const hasAdminPassword = window.__ENV__?.ADMINPASSWORD &&
-                             window.__ENV__.ADMINPASSWORD.length === 64 &&
-                             !/^0+$/.test(window.__ENV__.ADMINPASSWORD);
+    const hasAdminPassword = window.__ENV__?.ADMINPASSWORD && 
+                           window.__ENV__.ADMINPASSWORD.length === 64 && 
+                           !/^0+$/.test(window.__ENV__.ADMINPASSWORD);
 
     if (settingsPanel.classList.contains('show')) {
         settingsPanel.classList.remove('show');
@@ -586,14 +552,12 @@ function setupEventListeners() {
                 if (e.target.checked === true) {
                     adultdiv.style.display = 'none';
                 } else if (e.target.checked === false) {
-                    adultdiv.style.display = '';
+                    adultdiv.style.display = ''
                 }
             } else {
                 // 添加成人API列表
                 addAdultAPI();
             }
-            // 重新检查成人API选中状态以更新提示
-            checkAdultAPIsSelected();
         });
     }
 
@@ -667,15 +631,7 @@ async function search() {
         return;
     }
 
-    // 确保在搜索前再次更新 selectedAPIs，以防用户在设置中取消选中（尽管我们强制选中了）
-    // 或者直接使用我们强制选中的所有 API 列表
-    // 为了确保“所有接口”被使用，我们可以在这里临时重新构建 selectedAPIs
-    const currentBuiltInApiKeys = Object.keys(API_SITES);
-    const currentCustomApiIds = customAPIs.map((_, index) => 'custom_' + index);
-    const searchAPIs = [...currentBuiltInApiKeys, ...currentCustomApiIds];
-
-
-    if (searchAPIs.length === 0) { // 这里使用 searchAPIs 检查
+    if (selectedAPIs.length === 0) {
         showToast('请至少选择一个API源', 'warning');
         return;
     }
@@ -688,8 +644,7 @@ async function search() {
 
         // 从所有选中的API源搜索
         let allResults = [];
-        // 这里使用 searchAPIs 进行搜索
-        const searchPromises = searchAPIs.map(apiId =>
+        const searchPromises = selectedAPIs.map(apiId => 
             searchByAPIAndKeyWord(apiId, query)
         );
 
@@ -727,8 +682,8 @@ async function search() {
             resultsDiv.innerHTML = `
                 <div class="col-span-full text-center py-16">
                     <svg class="mx-auto h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <h3 class="mt-2 text-lg font-medium text-gray-400">没有找到匹配的结果</h3>
                     <p class="mt-1 text-sm text-gray-500">请尝试其他关键词或更换数据源</p>
@@ -756,7 +711,6 @@ async function search() {
         }
 
         // 处理搜索结果过滤：如果启用了黄色内容过滤，则过滤掉分类含有敏感内容的项目
-        // 由于我们强制禁用了黄色内容过滤，所以这里不会进行过滤
         const yellowFilterEnabled = localStorage.getItem('yellowFilterEnabled') === 'true';
         if (yellowFilterEnabled) {
             const banned = ['伦理片', '福利', '里番动漫', '门事件', '萝莉少女', '制服诱惑', '国产传媒', 'cosplay', '黑丝诱惑', '无码', '日本无码', '有码', '日本有码', 'SWAG', '网红主播', '色情片', '同性片', '福利视频', '福利片'];
@@ -785,40 +739,50 @@ async function search() {
             const hasCover = item.vod_pic && item.vod_pic.startsWith('http');
 
             return `
-                <div class="card-hover bg-[#111] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] h-full shadow-sm hover:shadow-md"
+                <div class="card-hover bg-[#111] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] h-full shadow-sm hover:shadow-md" 
                      onclick="showDetails('${safeId}','${safeName}','${sourceCode}')" ${apiUrlAttr}>
                     <div class="flex h-full">
                         ${hasCover ? `
                         <div class="relative flex-shrink-0 search-card-img-container">
-                            <img src="${item.vod_pic}" alt="${safeName}"
-                                 class="h-full w-full object-cover transition-transform hover:scale-110"
-                                 onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450?text=无封面'; this.classList.add('object-contain');"
+                            <img src="${item.vod_pic}" alt="${safeName}" 
+                                 class="h-full w-full object-cover transition-transform hover:scale-110" 
+                                 onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450?text=无封面'; this.classList.add('object-contain');" 
                                  loading="lazy">
                             <div class="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent"></div>
                         </div>` : ''}
-
+                        
                         <div class="p-2 flex flex-col flex-grow">
                             <div class="flex-grow">
                                 <h3 class="font-semibold mb-2 break-words line-clamp-2 ${hasCover ? '' : 'text-center'}" title="${safeName}">${safeName}</h3>
-
+                                
                                 <div class="flex flex-wrap ${hasCover ? '' : 'justify-center'} gap-1 mb-2">
                                     ${(item.type_name || '').toString().replace(/</g, '&lt;') ?
                     `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-blue-500 text-blue-300">
-                                            ${(item.type_name || '').toString().replace(/</g, '&lt;')}
-                                        </span>` : ''}
+                                          ${(item.type_name || '').toString().replace(/</g, '&lt;')}
+                                      </span>` : ''}
                                     ${(item.vod_year || '') ?
                     `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-purple-500 text-purple-300">
-                                            ${item.vod_year}
-                                        </span>` : ''}
+                                          ${item.vod_year}
+                                      </span>` : ''}
                                 </div>
                                 <p class="text-gray-400 line-clamp-2 overflow-hidden ${hasCover ? '' : 'text-center'} mb-2">
                                     ${(item.vod_remarks || '暂无介绍').toString().replace(/</g, '&lt;')}
                                 </p>
                             </div>
-
+                            
                             <div class="flex justify-between items-center mt-1 pt-1 border-t border-gray-800">
                                 ${sourceInfo ? `<div>${sourceInfo}</div>` : '<div></div>'}
+                                <!-- 接口名称过长会被挤变形
+                                <div>
+                                    <span class="text-gray-500 flex items-center hover:text-blue-400 transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                        </svg>
+                                        播放
+                                    </span>
                                 </div>
+                                -->
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -910,18 +874,475 @@ async function showDetails(id, vod_name, sourceCode) {
                 hideLoading();
                 return;
             }
-            // 这里需要根据你的 searchByAPIAndKeyWord 和 fetchDetailsFromAPI 函数如何处理 custom API 来调整
-            // 例如，如果 searchByAPIAndKeyWord 能够直接处理 customApi 对象，那么无需额外修改
-            // 如果你的 API 调用需要特定的 URL 和参数，你需要在这里构建它们
-            // 为了保持现有逻辑不变，假设 sourceCode 已经足够让 searchByAPIAndKeyWord 知道如何处理 custom API
+            // 传递 detail 字段
+            if (customApi.detail) {
+                apiParams = '&customApi=' + encodeURIComponent(customApi.url) + '&customDetail=' + encodeURIComponent(customApi.detail) + '&source=custom';
+            } else {
+                apiParams = '&customApi=' + encodeURIComponent(customApi.url) + '&source=custom';
+            }
+        } else {
+            // 内置API
+            apiParams = '&source=' + sourceCode;
         }
-        // ... (原有的详情获取逻辑，这里不需要改动，因为我们只是改变了API的选中状态)
-        // 假设 showDetails 最终会调用一个类似 fetchDetailsFromAPI(sourceCode, id) 的函数
-        // 而这个函数已经能够根据 sourceCode (内置API键或 custom_index) 来正确获取详情
+
+        // Add a timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        const cacheBuster = `&_t=${timestamp}`;
+        const response = await fetch(`/api/detail?id=${encodeURIComponent(id)}${apiParams}${cacheBuster}`);
+
+        const data = await response.json();
+
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalContent = document.getElementById('modalContent');
+
+        // 显示来源信息
+        const sourceName = data.videoInfo && data.videoInfo.source_name ?
+            ` <span class="text-sm font-normal text-gray-400">(${data.videoInfo.source_name})</span>` : '';
+
+        // 不对标题进行截断处理，允许完整显示
+        modalTitle.innerHTML = `<span class="break-words">${vod_name || '未知视频'}</span>${sourceName}`;
+        currentVideoTitle = vod_name || '未知视频';
+
+        if (data.episodes && data.episodes.length > 0) {
+            // 构建详情信息HTML
+            let detailInfoHtml = '';
+            if (data.videoInfo) {
+                // Prepare description text, strip HTML and trim whitespace
+                const descriptionText = data.videoInfo.desc ? data.videoInfo.desc.replace(/<[^>]+>/g, '').trim() : '';
+
+                // Check if there's any actual grid content
+                const hasGridContent = data.videoInfo.type || data.videoInfo.year || data.videoInfo.area || data.videoInfo.director || data.videoInfo.actor || data.videoInfo.remarks;
+
+                if (hasGridContent || descriptionText) { // Only build if there's something to show
+                    detailInfoHtml = `
+                <div class="modal-detail-info">
+                    ${hasGridContent ? `
+                    <div class="detail-grid">
+                        ${data.videoInfo.type ? `<div class="detail-item"><span class="detail-label">类型:</span> <span class="detail-value">${data.videoInfo.type}</span></div>` : ''}
+                        ${data.videoInfo.year ? `<div class="detail-item"><span class="detail-label">年份:</span> <span class="detail-value">${data.videoInfo.year}</span></div>` : ''}
+                        ${data.videoInfo.area ? `<div class="detail-item"><span class="detail-label">地区:</span> <span class="detail-value">${data.videoInfo.area}</span></div>` : ''}
+                        ${data.videoInfo.director ? `<div class="detail-item"><span class="detail-label">导演:</span> <span class="detail-value">${data.videoInfo.director}</span></div>` : ''}
+                        ${data.videoInfo.actor ? `<div class="detail-item"><span class="detail-label">主演:</span> <span class="detail-value">${data.videoInfo.actor}</span></div>` : ''}
+                        ${data.videoInfo.remarks ? `<div class="detail-item"><span class="detail-label">备注:</span> <span class="detail-value">${data.videoInfo.remarks}</span></div>` : ''}
+                    </div>` : ''}
+                    ${descriptionText ? `
+                    <div class="detail-desc">
+                        <p class="detail-label">简介:</p>
+                        <p class="detail-desc-content">${descriptionText}</p>
+                    </div>` : ''}
+                </div>
+                `;
+                }
+            }
+
+            currentEpisodes = data.episodes;
+            currentEpisodeIndex = 0;
+
+            modalContent.innerHTML = `
+                ${detailInfoHtml}
+                <div class="flex flex-wrap items-center justify-between mb-4 gap-2">
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleEpisodeOrder('${sourceCode}', '${id}')" 
+                                class="px-3 py-1.5 bg-[#333] hover:bg-[#444] border border-[#444] rounded text-sm transition-colors flex items-center gap-1">
+                            <svg class="w-4 h-4 transform ${episodesReversed ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                            </svg>
+                            <span>${episodesReversed ? '正序排列' : '倒序排列'}</span>
+                        </button>
+                        <span class="text-gray-400 text-sm">共 ${data.episodes.length} 集</span>
+                    </div>
+                    <button onclick="copyLinks()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors">
+                        复制链接
+                    </button>
+                </div>
+                <div id="episodesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                    ${renderEpisodes(vod_name, sourceCode, id)}
+                </div>
+            `;
+        } else {
+            modalContent.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="text-red-400 mb-2">❌ 未找到播放资源</div>
+                    <div class="text-gray-500 text-sm">该视频可能暂时无法播放，请尝试其他视频</div>
+                </div>
+            `;
+        }
+
+        modal.classList.remove('hidden');
     } catch (error) {
         console.error('获取详情错误:', error);
-        showToast('获取视频详情失败，请稍后重试', 'error');
+        showToast('获取详情失败，请稍后重试', 'error');
     } finally {
         hideLoading();
     }
 }
+
+// 更新播放视频函数，修改为使用/watch路径而不是直接打开player.html
+function playVideo(url, vod_name, sourceCode, episodeIndex = 0, vodId = '') {
+    // 密码保护校验
+    if (window.isPasswordProtected && window.isPasswordVerified) {
+        if (window.isPasswordProtected() && !window.isPasswordVerified()) {
+            showPasswordModal && showPasswordModal();
+            return;
+        }
+    }
+
+    // 获取当前路径作为返回页面
+    let currentPath = window.location.href;
+
+    // 构建播放页面URL，使用watch.html作为中间跳转页
+    let watchUrl = `watch.html?id=${vodId || ''}&source=${sourceCode || ''}&url=${encodeURIComponent(url)}&index=${episodeIndex}&title=${encodeURIComponent(vod_name || '')}`;
+
+    // 添加返回URL参数
+    if (currentPath.includes('index.html') || currentPath.endsWith('/')) {
+        watchUrl += `&back=${encodeURIComponent(currentPath)}`;
+    }
+
+    // 保存当前状态到localStorage
+    try {
+        localStorage.setItem('currentVideoTitle', vod_name || '未知视频');
+        localStorage.setItem('currentEpisodes', JSON.stringify(currentEpisodes));
+        localStorage.setItem('currentEpisodeIndex', episodeIndex);
+        localStorage.setItem('currentSourceCode', sourceCode || '');
+        localStorage.setItem('lastPlayTime', Date.now());
+        localStorage.setItem('lastSearchPage', currentPath);
+        localStorage.setItem('lastPageUrl', currentPath);  // 确保保存返回页面URL
+    } catch (e) {
+        console.error('保存播放状态失败:', e);
+    }
+
+    // 在当前标签页中打开播放页面
+    window.location.href = watchUrl;
+}
+
+// 弹出播放器页面
+function showVideoPlayer(url) {
+    // 在打开播放器前，隐藏详情弹窗
+    const detailModal = document.getElementById('modal');
+    if (detailModal) {
+        detailModal.classList.add('hidden');
+    }
+    // 临时隐藏搜索结果和豆瓣区域，防止高度超出播放器而出现滚动条
+    document.getElementById('resultsArea').classList.add('hidden');
+    document.getElementById('doubanArea').classList.add('hidden');
+    // 在框架中打开播放页面
+    videoPlayerFrame = document.createElement('iframe');
+    videoPlayerFrame.id = 'VideoPlayerFrame';
+    videoPlayerFrame.className = 'fixed w-full h-screen z-40';
+    videoPlayerFrame.src = url;
+    document.body.appendChild(videoPlayerFrame);
+    // 将焦点移入iframe
+    videoPlayerFrame.focus();
+}
+
+// 关闭播放器页面
+function closeVideoPlayer(home = false) {
+    videoPlayerFrame = document.getElementById('VideoPlayerFrame');
+    if (videoPlayerFrame) {
+        videoPlayerFrame.remove();
+        // 恢复搜索结果显示
+        document.getElementById('resultsArea').classList.remove('hidden');
+        // 关闭播放器时也隐藏详情弹窗
+        const detailModal = document.getElementById('modal');
+        if (detailModal) {
+            detailModal.classList.add('hidden');
+        }
+        // 如果启用豆瓣区域则显示豆瓣区域
+        if (localStorage.getItem('doubanEnabled') === 'true') {
+            document.getElementById('doubanArea').classList.remove('hidden');
+        }
+    }
+    if (home) {
+        // 刷新主页
+        window.location.href = '/'
+    }
+}
+
+// 播放上一集
+function playPreviousEpisode(sourceCode) {
+    if (currentEpisodeIndex > 0) {
+        const prevIndex = currentEpisodeIndex - 1;
+        const prevUrl = currentEpisodes[prevIndex];
+        playVideo(prevUrl, currentVideoTitle, sourceCode, prevIndex);
+    }
+}
+
+// 播放下一集
+function playNextEpisode(sourceCode) {
+    if (currentEpisodeIndex < currentEpisodes.length - 1) {
+        const nextIndex = currentEpisodeIndex + 1;
+        const nextUrl = currentEpisodes[nextIndex];
+        playVideo(nextUrl, currentVideoTitle, sourceCode, nextIndex);
+    }
+}
+
+// 处理播放器加载错误
+function handlePlayerError() {
+    hideLoading();
+    showToast('视频播放加载失败，请尝试其他视频源', 'error');
+}
+
+// 辅助函数用于渲染剧集按钮（使用当前的排序状态）
+function renderEpisodes(vodName, sourceCode, vodId) {
+    const episodes = episodesReversed ? [...currentEpisodes].reverse() : currentEpisodes;
+    return episodes.map((episode, index) => {
+        // 根据倒序状态计算真实的剧集索引
+        const realIndex = episodesReversed ? currentEpisodes.length - 1 - index : index;
+        return `
+            <button id="episode-${realIndex}" onclick="playVideo('${episode}','${vodName.replace(/"/g, '&quot;')}', '${sourceCode}', ${realIndex}, '${vodId}')" 
+                    class="px-4 py-2 bg-[#222] hover:bg-[#333] border border-[#333] rounded-lg transition-colors text-center episode-btn">
+                ${realIndex + 1}
+            </button>
+        `;
+    }).join('');
+}
+
+// 复制视频链接到剪贴板
+function copyLinks() {
+    const episodes = episodesReversed ? [...currentEpisodes].reverse() : currentEpisodes;
+    const linkList = episodes.join('\r\n');
+    navigator.clipboard.writeText(linkList).then(() => {
+        showToast('播放链接已复制', 'success');
+    }).catch(err => {
+        showToast('复制失败，请检查浏览器权限', 'error');
+    });
+}
+
+// 切换排序状态的函数
+function toggleEpisodeOrder(sourceCode, vodId) {
+    episodesReversed = !episodesReversed;
+    // 重新渲染剧集区域，使用 currentVideoTitle 作为视频标题
+    const episodesGrid = document.getElementById('episodesGrid');
+    if (episodesGrid) {
+        episodesGrid.innerHTML = renderEpisodes(currentVideoTitle, sourceCode, vodId);
+    }
+
+    // 更新按钮文本和箭头方向
+    const toggleBtn = document.querySelector(`button[onclick="toggleEpisodeOrder('${sourceCode}', '${vodId}')"]`);
+    if (toggleBtn) {
+        toggleBtn.querySelector('span').textContent = episodesReversed ? '正序排列' : '倒序排列';
+        const arrowIcon = toggleBtn.querySelector('svg');
+        if (arrowIcon) {
+            arrowIcon.style.transform = episodesReversed ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+    }
+}
+
+// 从URL导入配置
+async function importConfigFromUrl() {
+    // 创建模态框元素
+    let modal = document.getElementById('importUrlModal');
+    if (modal) {
+        document.body.removeChild(modal);
+    }
+
+    modal = document.createElement('div');
+    modal.id = 'importUrlModal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-40';
+
+    modal.innerHTML = `
+        <div class="bg-[#191919] rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto relative">
+            <button id="closeUrlModal" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl">&times;</button>
+            
+            <h3 class="text-xl font-bold mb-4">从URL导入配置</h3>
+            
+            <div class="mb-4">
+                <input type="text" id="configUrl" placeholder="输入配置文件URL" 
+                       class="w-full px-3 py-2 bg-[#222] border border-[#333] rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+            
+            <div class="flex justify-end space-x-2">
+                <button id="confirmUrlImport" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">导入</button>
+                <button id="cancelUrlImport" class="bg-[#444] hover:bg-[#555] text-white px-4 py-2 rounded">取消</button>
+            </div>
+        </div>`;
+
+    document.body.appendChild(modal);
+
+    // 关闭按钮事件
+    document.getElementById('closeUrlModal').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+
+    // 取消按钮事件
+    document.getElementById('cancelUrlImport').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+
+    // 确认导入按钮事件
+    document.getElementById('confirmUrlImport').addEventListener('click', async () => {
+        const url = document.getElementById('configUrl').value.trim();
+        if (!url) {
+            showToast('请输入配置文件URL', 'warning');
+            return;
+        }
+
+        // 验证URL格式
+        try {
+            const urlObj = new URL(url);
+            if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+                showToast('URL必须以http://或https://开头', 'warning');
+                return;
+            }
+        } catch (e) {
+            showToast('URL格式不正确', 'warning');
+            return;
+        }
+
+        showLoading('正在从URL导入配置...');
+
+        try {
+            // 获取配置文件 - 直接请求URL
+            const response = await fetch(url, {
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            if (!response.ok) throw '获取配置文件失败';
+
+            // 验证响应内容类型
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw '响应不是有效的JSON格式';
+            }
+
+            const config = await response.json();
+            if (config.name !== 'LibreTV-Settings') throw '配置文件格式不正确';
+
+            // 验证哈希
+            const dataHash = await sha256(JSON.stringify(config.data));
+            if (dataHash !== config.hash) throw '配置文件哈希值不匹配';
+
+            // 导入配置
+            for (let item in config.data) {
+                localStorage.setItem(item, config.data[item]);
+            }
+
+            showToast('配置文件导入成功，3 秒后自动刷新本页面。', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        } catch (error) {
+            const message = typeof error === 'string' ? error : '导入配置失败';
+            showToast(`从URL导入配置出错 (${message})`, 'error');
+        } finally {
+            hideLoading();
+            document.body.removeChild(modal);
+        }
+    });
+
+    // 点击模态框外部关闭
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+}
+
+// 配置文件导入功能
+async function importConfig() {
+    showImportBox(async (file) => {
+        try {
+            // 检查文件类型
+            if (!(file.type === 'application/json' || file.name.endsWith('.json'))) throw '文件类型不正确';
+
+            // 检查文件大小
+            if (file.size > 1024 * 1024 * 10) throw new Error('文件大小超过 10MB');
+
+            // 读取文件内容
+            const content = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject('文件读取失败');
+                reader.readAsText(file);
+            });
+
+            // 解析并验证配置
+            const config = JSON.parse(content);
+            if (config.name !== 'LibreTV-Settings') throw '配置文件格式不正确';
+
+            // 验证哈希
+            const dataHash = await sha256(JSON.stringify(config.data));
+            if (dataHash !== config.hash) throw '配置文件哈希值不匹配';
+
+            // 导入配置
+            for (let item in config.data) {
+                localStorage.setItem(item, config.data[item]);
+            }
+
+            showToast('配置文件导入成功，3 秒后自动刷新本页面。', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        } catch (error) {
+            const message = typeof error === 'string' ? error : '配置文件格式错误';
+            showToast(`配置文件读取出错 (${message})`, 'error');
+        }
+    });
+}
+
+// 配置文件导出功能
+async function exportConfig() {
+    // 存储配置数据
+    const config = {};
+    const items = {};
+
+    const settingsToExport = [
+        'selectedAPIs',
+        'customAPIs',
+        'yellowFilterEnabled',
+        'adFilteringEnabled',
+        'doubanEnabled',
+        'hasInitializedDefaults'
+    ];
+
+    // 导出设置项
+    settingsToExport.forEach(key => {
+        const value = localStorage.getItem(key);
+        if (value !== null) {
+            items[key] = value;
+        }
+    });
+
+    // 导出历史记录
+    const viewingHistory = localStorage.getItem('viewingHistory');
+    if (viewingHistory) {
+        items['viewingHistory'] = viewingHistory;
+    }
+
+    const searchHistory = localStorage.getItem(SEARCH_HISTORY_KEY);
+    if (searchHistory) {
+        items[SEARCH_HISTORY_KEY] = searchHistory;
+    }
+
+    const times = Date.now().toString();
+    config['name'] = 'LibreTV-Settings';  // 配置文件名，用于校验
+    config['time'] = times;               // 配置文件生成时间
+    config['cfgVer'] = '1.0.0';           // 配置文件版本
+    config['data'] = items;               // 配置文件数据
+    config['hash'] = await sha256(JSON.stringify(config['data']));  // 计算数据的哈希值，用于校验
+
+    // 将配置数据保存为 JSON 文件
+    saveStringAsFile(JSON.stringify(config), 'LibreTV-Settings_' + times + '.json');
+}
+
+// 将字符串保存为文件
+function saveStringAsFile(content, fileName) {
+    // 创建Blob对象并指定类型
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    // 生成临时URL
+    const url = window.URL.createObjectURL(blob);
+    // 创建<a>标签并触发下载
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    // 清理临时对象
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+// 移除Node.js的require语句，因为这是在浏览器环境中运行的
