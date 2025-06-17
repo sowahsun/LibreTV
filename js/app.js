@@ -22,9 +22,12 @@ document.addEventListener('DOMContentLoaded', function () {
     localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs));
 
     // 2. 强制设置所有功能开关的初始状态
-    localStorage.setItem('yellowFilterEnabled', 'false'); // 强制永久关闭黄色内容过滤
-    localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, 'true'); // 强制开启广告过滤
-    localStorage.setItem('doubanRecommendEnabled', 'true'); // 强制开启豆瓣热门推荐 (假设键名)
+    localStorage.setItem('yellowFilterEnabled', 'true'); // 强制开启黄色内容过滤 (可调节)
+    localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, 'true'); // 强制开启广告过滤 (可调节)
+    localStorage.setItem('doubanRecommendEnabled', 'true'); // 强制开启豆瓣热门推荐 (可调节)
+    localStorage.setItem('smartSearchEnabled', 'true'); // 智能快搜，根据之前的沟通，保持开启
+    localStorage.setItem('videoRatingEnabled', 'true'); // 视频分级，根据之前的沟通，保持开启
+
 
     // 3. 标记已初始化默认值，防止旧的默认逻辑覆盖我们的设置
     localStorage.setItem('hasInitializedDefaults', 'true');
@@ -43,15 +46,15 @@ document.addEventListener('DOMContentLoaded', function () {
     // 渲染搜索历史
     renderSearchHistory();
 
-    // === START OF MODIFICATION (Update Toggle States and disable yellow filter) ===
+    // === START OF MODIFICATION (Update Toggle States) ===
     // 设置黄色内容过滤器开关初始状态
     const yellowFilterToggle = document.getElementById('yellowFilterToggle');
     if (yellowFilterToggle) {
-        yellowFilterToggle.checked = false; // 强制为 false
-        yellowFilterToggle.disabled = true; // 强制禁用，不可调节
+        yellowFilterToggle.checked = true; // 强制为 true (开启)
+        yellowFilterToggle.disabled = false; // 强制为 false (可调节)
         const filterDescription = yellowFilterToggle.closest('div').parentNode.querySelector('p.filter-description');
         if (filterDescription) {
-            filterDescription.innerHTML = '<strong class="text-gray-500">此功能已永久禁用</strong>'; // 更新描述
+            filterDescription.innerHTML = '过滤"伦理片"等黄色内容'; // 恢复默认描述
         }
     }
 
@@ -59,19 +62,33 @@ document.addEventListener('DOMContentLoaded', function () {
     const adFilterToggle = document.getElementById('adFilterToggle');
     if (adFilterToggle) {
         adFilterToggle.checked = true; // 强制为 true (开启)
+        adFilterToggle.disabled = false; // 可调节
     }
 
     // 设置豆瓣热门推荐开关初始状态 (假设ID为 doubanRecommendToggle)
     const doubanRecommendToggle = document.getElementById('doubanRecommendToggle');
     if (doubanRecommendToggle) {
         doubanRecommendToggle.checked = true; // 强制为 true (开启)
+        doubanRecommendToggle.disabled = false; // 可调节
+    }
+
+    // 设置智能快搜开关初始状态 (假设其ID为 smartSearchToggle)
+    const smartSearchToggle = document.getElementById('smartSearchToggle');
+    if (smartSearchToggle) {
+        smartSearchToggle.checked = true; // 强制为true
+    }
+
+    // 设置视频分级开关初始状态 (假设其ID为 videoRatingToggle)
+    const videoRatingToggle = document.getElementById('videoRatingToggle');
+    if (videoRatingToggle) {
+        videoRatingToggle.checked = true; // 强制为true
     }
     // === END OF MODIFICATION ===
 
     // 设置事件监听器
     setupEventListeners();
 
-    // 初始检查成人API选中状态 (现在此函数不会影响黄滤的禁用状态了)
+    // 初始检查成人API选中状态 (现在此函数不会影响黄滤的禁用状态了，只更新提示)
     setTimeout(checkAdultAPIsSelected, 100);
 });
 
@@ -125,7 +142,6 @@ function initAPICheckboxes() {
 
 // 添加成人API列表
 function addAdultAPI() {
-    // 即使黄色过滤开启，我们也显示这些API，因为用户可能想看到它们并进行选择
     // HIDE_BUILTIN_ADULT_APIS 应该是一个布尔值，如果为true，则完全不显示成人API组
     if (!HIDE_BUILTIN_ADULT_APIS) {
         const container = document.getElementById('apiCheckboxes');
@@ -170,33 +186,55 @@ function addAdultAPI() {
             // 添加事件监听器
             checkbox.querySelector('input').addEventListener('change', function () {
                 updateSelectedAPIs();
-                checkAdultAPIsSelected(); // 再次调用以更新描述，但不再影响禁用状态
+                checkAdultAPIsSelected(); // 再次调用以更新描述/提示
             });
         });
         container.appendChild(adultdiv);
     }
 }
 
-// 检查是否有成人API被选中
+// 检查是否有成人API被选中并更新黄色内容过滤的描述
 function checkAdultAPIsSelected() {
     const yellowFilterToggle = document.getElementById('yellowFilterToggle');
     const yellowFilterContainer = yellowFilterToggle.closest('div').parentNode;
     const filterDescription = yellowFilterContainer.querySelector('p.filter-description');
+    const yellowFilterEnabled = yellowFilterToggle.checked;
 
-    // === START OF MODIFICATION ===
-    // 黄色内容过滤现在是默认永久关闭且不可调节的，
-    // 因此这里不再需要根据成人API的选择状态来禁用或启用黄滤开关。
-    // 我们只需确保描述正确显示“此功能已永久禁用”。
-    if (filterDescription) {
-        filterDescription.innerHTML = '<strong class="text-gray-500">此功能已永久禁用</strong>';
-    }
-    // 移除提示信息（如果存在）
+    // 获取所有成人API的复选框
+    const adultApiCheckboxes = document.querySelectorAll('.api-adult');
+    const hasAdultApisActuallySelected = Array.from(adultApiCheckboxes).some(checkbox => checkbox.checked);
+
+    // 移除旧的提示（如果存在）
     const existingTooltip = yellowFilterContainer.querySelector('.filter-tooltip');
     if (existingTooltip) {
         existingTooltip.remove();
     }
-    // === END OF MODIFICATION ===
+
+    // 根据黄滤状态和成人API选择情况更新描述
+    if (yellowFilterEnabled) {
+        if (hasAdultApisActuallySelected) {
+            // 如果黄色过滤开启，且有成人API被选中，显示会过滤的提示
+            if (filterDescription) {
+                filterDescription.innerHTML = '过滤"伦理片"等黄色内容 <span class="filter-tooltip text-yellow-500 text-xs">(已选中黄色资源接口，黄色内容将被过滤)</span>';
+            }
+        } else {
+            // 如果黄色过滤开启，但没有成人API选中，显示正常描述
+            if (filterDescription) {
+                filterDescription.innerHTML = '过滤"伦理片"等黄色内容';
+            }
+        }
+    } else {
+        // 如果黄色过滤关闭，显示正常描述
+        if (filterDescription) {
+            filterDescription.innerHTML = '过滤"伦理片"等黄色内容 <span class="filter-tooltip text-gray-500 text-xs">(已关闭，黄色内容可能显示)</span>';
+        }
+    }
+
+    // 确保开关是可调节的
+    yellowFilterToggle.disabled = false;
+    yellowFilterContainer.classList.remove('filter-disabled');
 }
+
 
 // 渲染自定义API列表
 function renderCustomAPIsList() {
@@ -548,17 +586,14 @@ function setupEventListeners() {
         }
     });
 
-    // 黄色内容过滤开关事件绑定 - 现在将忽略其change事件，因为它被禁用了
+    // 黄色内容过滤开关事件绑定
     const yellowFilterToggle = document.getElementById('yellowFilterToggle');
-    if (yellowFilterToggle && yellowFilterToggle.disabled) {
-        // 如果禁用，则不添加事件监听器，或者添加一个空监听器防止意外行为
-        yellowFilterToggle.addEventListener('change', function (e) {
-            e.preventDefault(); // 阻止任何状态改变
-            e.stopPropagation();
-        });
-    } else if (yellowFilterToggle) { // 仅在未被禁用时添加正常监听器
+    if (yellowFilterToggle) {
+        // 由于现在是可调节的，移除之前的禁用检查，直接添加事件监听
         yellowFilterToggle.addEventListener('change', function (e) {
             localStorage.setItem('yellowFilterEnabled', e.target.checked);
+            // 每次改变状态时更新描述
+            checkAdultAPIsSelected();
         });
     }
 
