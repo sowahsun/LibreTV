@@ -21,11 +21,10 @@ document.addEventListener('DOMContentLoaded', function () {
     selectedAPIs = [...allBuiltInApiKeys, ...allCustomApiIds];
     localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs));
 
-    // 2. 强制开启所有功能开关
-    localStorage.setItem('yellowFilterEnabled', 'true'); // 强制开启黄色内容过滤
-    localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, 'false'); // 广告过滤保持关闭，根据之前你说的“其他不要做任何改变”
-    localStorage.setItem('smartSearchEnabled', 'true'); // 假设智能快搜的存储键是 'smartSearchEnabled'
-    localStorage.setItem('videoRatingEnabled', 'true'); // 假设视频分级的存储键是 'videoRatingEnabled'
+    // 2. 强制设置所有功能开关的初始状态
+    localStorage.setItem('yellowFilterEnabled', 'false'); // 强制永久关闭黄色内容过滤
+    localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, 'true'); // 强制开启广告过滤
+    localStorage.setItem('doubanRecommendEnabled', 'true'); // 强制开启豆瓣热门推荐 (假设键名)
 
     // 3. 标记已初始化默认值，防止旧的默认逻辑覆盖我们的设置
     localStorage.setItem('hasInitializedDefaults', 'true');
@@ -44,37 +43,35 @@ document.addEventListener('DOMContentLoaded', function () {
     // 渲染搜索历史
     renderSearchHistory();
 
-    // === START OF MODIFICATION (Update Toggle States) ===
+    // === START OF MODIFICATION (Update Toggle States and disable yellow filter) ===
     // 设置黄色内容过滤器开关初始状态
     const yellowFilterToggle = document.getElementById('yellowFilterToggle');
     if (yellowFilterToggle) {
-        yellowFilterToggle.checked = true; // 强制为true
-        yellowFilterToggle.disabled = false; // 确保可以被用户操作 (尽管我们默认开启)
+        yellowFilterToggle.checked = false; // 强制为 false
+        yellowFilterToggle.disabled = true; // 强制禁用，不可调节
+        const filterDescription = yellowFilterToggle.closest('div').parentNode.querySelector('p.filter-description');
+        if (filterDescription) {
+            filterDescription.innerHTML = '<strong class="text-gray-500">此功能已永久禁用</strong>'; // 更新描述
+        }
     }
 
-    // 设置广告过滤开关初始状态 (如果它也对应一个toggle，根据你之前的要求保持关闭)
+    // 设置广告过滤开关初始状态
     const adFilterToggle = document.getElementById('adFilterToggle');
     if (adFilterToggle) {
-        adFilterToggle.checked = false; // 强制为false
+        adFilterToggle.checked = true; // 强制为 true (开启)
     }
 
-    // 设置智能快搜开关初始状态 (假设其ID为 smartSearchToggle)
-    const smartSearchToggle = document.getElementById('smartSearchToggle');
-    if (smartSearchToggle) {
-        smartSearchToggle.checked = true; // 强制为true
-    }
-
-    // 设置视频分级开关初始状态 (假设其ID为 videoRatingToggle)
-    const videoRatingToggle = document.getElementById('videoRatingToggle');
-    if (videoRatingToggle) {
-        videoRatingToggle.checked = true; // 强制为true
+    // 设置豆瓣热门推荐开关初始状态 (假设ID为 doubanRecommendToggle)
+    const doubanRecommendToggle = document.getElementById('doubanRecommendToggle');
+    if (doubanRecommendToggle) {
+        doubanRecommendToggle.checked = true; // 强制为 true (开启)
     }
     // === END OF MODIFICATION ===
 
     // 设置事件监听器
     setupEventListeners();
 
-    // 初始检查成人API选中状态 (这会根据我们强制选中所有API的结果来更新过滤器描述)
+    // 初始检查成人API选中状态 (现在此函数不会影响黄滤的禁用状态了)
     setTimeout(checkAdultAPIsSelected, 100);
 });
 
@@ -173,7 +170,7 @@ function addAdultAPI() {
             // 添加事件监听器
             checkbox.querySelector('input').addEventListener('change', function () {
                 updateSelectedAPIs();
-                checkAdultAPIsSelected(); // 即使过滤开启，我们仍然要更新描述
+                checkAdultAPIsSelected(); // 再次调用以更新描述，但不再影响禁用状态
             });
         });
         container.appendChild(adultdiv);
@@ -187,20 +184,12 @@ function checkAdultAPIsSelected() {
     const filterDescription = yellowFilterContainer.querySelector('p.filter-description');
 
     // === START OF MODIFICATION ===
-    // 考虑到现在“隐藏已选接口下的黄色内容”是默认开启的，
-    // 这里的逻辑需要调整。我们不再根据成人API是否选中来禁用黄滤，
-    // 而是始终让黄滤处于可控状态，其状态由其自身的toggle决定。
-    // 如果用户手动取消了黄滤，那它就关闭；如果默认是开启的，那就开启。
-
-    // 默认启用黄色内容过滤器 (因为我们现在要求默认开启)
-    yellowFilterToggle.disabled = false; // 始终可操作
-    yellowFilterContainer.classList.remove('filter-disabled'); // 移除禁用样式
-
-    // 恢复原来的描述文字，因为它现在始终是可控的
+    // 黄色内容过滤现在是默认永久关闭且不可调节的，
+    // 因此这里不再需要根据成人API的选择状态来禁用或启用黄滤开关。
+    // 我们只需确保描述正确显示“此功能已永久禁用”。
     if (filterDescription) {
-        filterDescription.innerHTML = '过滤"伦理片"等黄色内容';
+        filterDescription.innerHTML = '<strong class="text-gray-500">此功能已永久禁用</strong>';
     }
-
     // 移除提示信息（如果存在）
     const existingTooltip = yellowFilterContainer.querySelector('.filter-tooltip');
     if (existingTooltip) {
@@ -559,24 +548,17 @@ function setupEventListeners() {
         }
     });
 
-    // 黄色内容过滤开关事件绑定
+    // 黄色内容过滤开关事件绑定 - 现在将忽略其change事件，因为它被禁用了
     const yellowFilterToggle = document.getElementById('yellowFilterToggle');
-    if (yellowFilterToggle) {
+    if (yellowFilterToggle && yellowFilterToggle.disabled) {
+        // 如果禁用，则不添加事件监听器，或者添加一个空监听器防止意外行为
+        yellowFilterToggle.addEventListener('change', function (e) {
+            e.preventDefault(); // 阻止任何状态改变
+            e.stopPropagation();
+        });
+    } else if (yellowFilterToggle) { // 仅在未被禁用时添加正常监听器
         yellowFilterToggle.addEventListener('change', function (e) {
             localStorage.setItem('yellowFilterEnabled', e.target.checked);
-
-            // 控制黄色内容接口的显示状态
-            const adultdiv = document.getElementById('adultdiv');
-            // 如果开启过滤，可以考虑隐藏成人API复选框，但你之前说“其他不要做任何改变”，所以保持显示
-            // if (adultdiv) {
-            //     if (e.target.checked === true) {
-            //         adultdiv.style.display = 'none';
-            //     } else {
-            //         adultdiv.style.display = '';
-            //     }
-            // }
-            // 重新检查成人API选中状态以更新提示 (尽管现在此函数不强制关闭黄滤了)
-            checkAdultAPIsSelected();
         });
     }
 
@@ -588,7 +570,20 @@ function setupEventListeners() {
         });
     }
 
-    // 智能快搜开关事件绑定 (假设 ID 为 smartSearchToggle)
+    // 豆瓣热门推荐开关事件绑定 (假设 ID 为 doubanRecommendToggle)
+    const doubanRecommendToggle = document.getElementById('doubanRecommendToggle');
+    if (doubanRecommendToggle) {
+        doubanRecommendToggle.addEventListener('change', function (e) {
+            localStorage.setItem('doubanRecommendEnabled', e.target.checked);
+            // 如果有豆瓣功能，切换时也需要更新其显示
+            if (typeof updateDoubanVisibility === 'function') {
+                updateDoubanVisibility();
+            }
+        });
+    }
+
+    // 其他开关（如智能快搜、视频分级）的事件绑定...
+    // 假设智能快搜的开关ID是 'smartSearchToggle'
     const smartSearchToggle = document.getElementById('smartSearchToggle');
     if (smartSearchToggle) {
         smartSearchToggle.addEventListener('change', function (e) {
@@ -596,7 +591,7 @@ function setupEventListeners() {
         });
     }
 
-    // 视频分级开关事件绑定 (假设 ID 为 videoRatingToggle)
+    // 假设视频分级的开关ID是 'videoRatingToggle'
     const videoRatingToggle = document.getElementById('videoRatingToggle');
     if (videoRatingToggle) {
         videoRatingToggle.addEventListener('change', function (e) {
